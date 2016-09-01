@@ -1,0 +1,2 @@
+Tiempo multiplicar:  time: 2.462861 
+Tiempo final:  time: 2.884137 

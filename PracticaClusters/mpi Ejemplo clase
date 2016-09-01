@@ -1,0 +1,65 @@
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+typedef struct datos_t
+{
+	int data_size;
+	int data_count;
+}datos_t;
+
+int main(int argc, char** argv)
+{
+	int rank; //identificador
+	int nproc; //numero de procesos en caso de que sea un maestro.
+
+	char hostname[100];
+	gethostname(hostname,100);
+
+	MPI_Init(&argc,&argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+
+	if(rank == 0)
+	{
+		printf("Soy el maestro, en %s \n", hostname);
+		if(argc>1)
+		{
+			for(int i = 0; i < argc; i++)
+			{
+				printf("\t argumento: %s\n", argv[i]);
+			}
+		}
+		//envio datos
+		datos_t datos;
+		datos.data_size = sizeof(char);
+		datos.data_count = 100;
+
+		for(int nodo_id = 1; nodo_id< nproc;nodo_id++){
+			MPI_Send(&datos, sizeof(datos_t), MPI_BYTE, nodo_id, 0,MPI_COMM_WORLD);
+			MPI_Send(hostname, 100, MPI_CHAR, nodo_id,0,MPI_COMM_WORLD);
+		}
+	}
+	else
+	{
+		printf("Organicemonos esclavos %d en %s\n", rank, hostname);
+		//esclavos recibiendo datos
+		datos_t datos;
+		MPI_Status status;
+		MPI_Recv(&datos, sizeof(datos_t),MPI_BYTE,0,0,MPI_COMM_WORLD,&status);
+
+		//leer cabecera reservar buffer
+		char* buffer_reception = (char*)malloc(datos.data_count * datos.data_size);
+
+		MPI_Recv(buffer_reception, datos.data_count * datos.data_size, MPI_BYTE,0,0, MPI_COMM_WORLD, &status);
+
+		printf("Soy el esclavo %d recibido %s del master\n" ,rank, buffer_reception);
+
+
+	}
+	MPI_Finalize();
+
+	return 0;
+}
+
